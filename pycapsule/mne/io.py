@@ -3,7 +3,7 @@ import numpy as np
 
 def find_nearest_idx(array, value):
     array = np.asarray(array)
-    idx = (np.abs(array - value)).argmin()
+    idx = np.searchsorted(array, value)
     return idx
 
 UNDEFINED_STIMULUS = -1
@@ -11,15 +11,15 @@ TARGET_STIMULUS = 1
 NONTARGET_STIMULUS = 0
 
 class Visitor(RecordReaderVisitor):
-    eegData = None
-    eegTimestamps = None
-    stimuliTimestamps = None
-    stimuliLabels = None
-    stimuliIds = None
+    eegData = []
+    eegTimestamps = []
+    stimuliTimestamps = []
+    stimuliLabels = []
+    stimuliIds = []
 
     def OnRawEEG(self, eegData:np.ndarray, eegTimestamps:np.array):
-        self.eegData = np.append(self.eegData, eegData, axis=1) if self.eegData is not None else eegData
-        self.eegTimestamps = np.append(self.eegTimestamps, eegTimestamps) if self.eegTimestamps is not None else eegTimestamps
+        self.eegData.append(eegData)
+        self.eegTimestamps.append(eegTimestamps)
         
     def OnP300ProcessingUnit(self, p300unit:P300ProcessingUnit):
         targetStimulus = p300unit.targetStimulus
@@ -29,21 +29,22 @@ class Visitor(RecordReaderVisitor):
         stimuliIds = []
 
         for stimulusData in p300unit.stimuliData:
-            stimuliTimestamps.append(stimulusData.timestamp)
-            stimuliLabels.append(int(stimulusData.stimulusId == targetStimulus) if targetStimulus != UNDEFINED_STIMULUS else UNDEFINED_STIMULUS)
-            stimuliIds.append(stimulusData.stimulusId)
-
-        self.stimuliTimestamps = np.append(self.stimuliTimestamps, stimuliTimestamps) if self.stimuliTimestamps is not None else np.array(stimuliTimestamps)
-        self.stimuliLabels = np.append(self.stimuliLabels, stimuliLabels) if self.stimuliLabels is not None else np.array(stimuliLabels)
-        self.stimuliIds = np.append(self.stimuliIds, stimuliIds) if self.stimuliIds is not None else stimuliIds
+            self.stimuliTimestamps.append(stimulusData.timestamp)
+            self.stimuliLabels.append(int(stimulusData.stimulusId == targetStimulus) if targetStimulus != UNDEFINED_STIMULUS else UNDEFINED_STIMULUS)
+            self.stimuliIds.append(stimulusData.stimulusId)
 
 def read_raw_csr(input_fname):
     import mne
 
     visitor = Visitor()
     RecordReader.Unpack(input_fname, visitor)
+    visitor.eegData = np.hstack(visitor.eegData)
+    visitor.eegTimestamps = np.ravel(visitor.eegTimestamps)
+    visitor.stimuliTimestamps = np.ravel(visitor.stimuliTimestamps)
+    visitor.stimuliLabels = np.ravel(visitor.stimuliLabels)
+    visitor.stimuliIds = np.ravel(visitor.stimuliIds)
+
     metadata = RecordReader.UnpackMetadata(input_fname)
-    
     deviceInfo = metadata["deviceInfo"]
     sfreq = deviceInfo["sampleRate"]
 
@@ -61,12 +62,14 @@ def read_raw_csr(input_fname):
 
     events = []
 
-    for idx, stimulusTimestamp in enumerate(visitor.stimuliTimestamps):
-        label = visitor.stimuliLabels[idx]
+    if visitor.stimuliTimestamps is not None:
+        for idx, stimulusTimestamp in enumerate(visitor.stimuliTimestamps):
+            label = visitor.stimuliLabels[idx]
 
-        eid = label + 2 # remap into event ids by shifting
+            eid = label + 2 # remap into event ids by shifting
 
-        sampleIdx = find_nearest_idx(visitor.eegTimestamps, stimulusTimestamp)
-        events.append([sampleIdx, 0, eid])
+            sampleIdx = find_nearest_idx(visitor.eegTimestamps, stimulusTimestamp)
+            events.append([sampleIdx, 0, eid])
 
-    return mne.io.RawArray(visitor.eegData, mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')), np.array(events), event_id
+    info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
+    return mne.io.RawArray(data=visitor.eegData, info=info), np.array(events), event_id, visitor.eegTimestamps

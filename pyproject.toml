@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "pycapsule"
-version = "0.0.4"
+version = "0.0.5"
 description = "Various tools for Capsule BCI system"
 authors = [
     "Yaroslav Shmelev <ysh@impulse-machine.com>"
