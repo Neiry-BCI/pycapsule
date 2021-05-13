@@ -33,7 +33,7 @@ class Visitor(RecordReaderVisitor):
             self.stimuliLabels.append(int(stimulusData.stimulusId == targetStimulus) if targetStimulus != UNDEFINED_STIMULUS else UNDEFINED_STIMULUS)
             self.stimuliIds.append(stimulusData.stimulusId)
 
-def read_raw_csr(input_fname):
+def read_raw_csr(input_fname, outputTimestamps=False):
     import mne
 
     visitor = Visitor()
@@ -72,4 +72,11 @@ def read_raw_csr(input_fname):
             events.append([sampleIdx, 0, eid])
 
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
-    return mne.io.RawArray(data=visitor.eegData, info=info), np.array(events), event_id, visitor.eegTimestamps
+
+    returnVals = mne.io.RawArray(data=visitor.eegData, info=info), np.array(events), event_id
+
+    if outputTimestamps:
+        returnVals = *returnVals, visitor.eegTimestamps
+        return returnVals
+
+    return returnVals

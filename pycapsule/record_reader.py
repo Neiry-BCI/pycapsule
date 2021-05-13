@@ -64,13 +64,38 @@ class RecordReader:
 
         return None
 
+
+    @staticmethod
+    def UnpackResistances(filepath):
+        datFilepath = pl.Path(filepath).with_suffix(".res")   
+
+        if not os.path.isfile(datFilepath):
+            raise Exception("Session resistance .res file was not found, unable to unpack resistances!") 
+
+        with open(datFilepath,'rb') as file:
+            data = msgpack.unpackb(file.read())
+            
+            if not data:
+                return None
+
+        metadata = RecordReader.UnpackMetadata(filepath)
+        #print(metadata)
+        channelNames = metadata["deviceInfo"]["channelNames"]
+
+        def RetrieveResistances(resSamples):
+            numSamples = len(resSamples) // len(channelNames)
+            resSamples = np.transpose(np.reshape(resSamples, (numSamples, -1)))
+
+            resistancesDict = dict(zip(channelNames, resSamples))
+            return resistancesDict
+
+        return { "resBeforeSession": RetrieveResistances(data["resBeforeSession"]), 
+                 "resAfterSession": RetrieveResistances(data["resAfterSession"]) }
+
     @staticmethod
     def Unpack(filepath, visitor:RecordReaderVisitor):
         datFilepath = pl.Path(filepath).with_suffix(".dat")
         recFilepath = pl.Path(filepath).with_suffix(".rec")
-
-        if not os.path.isfile(datFilepath):
-            raise Exception("Session metadata .dat file was not found, unable to unpack data!")
 
         if not os.path.isfile(recFilepath):
             raise Exception("Session record .rec file was not found, unable to unpack data!")
