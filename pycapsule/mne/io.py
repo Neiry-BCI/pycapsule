@@ -24,10 +24,6 @@ class Visitor(RecordReaderVisitor):
     def OnP300ProcessingUnit(self, p300unit:P300ProcessingUnit):
         targetStimulus = p300unit.targetStimulus
 
-        stimuliTimestamps = []
-        stimuliLabels = []
-        stimuliIds = []
-
         for stimulusData in p300unit.stimuliData:
             self.stimuliTimestamps.append(stimulusData.timestamp)
             self.stimuliLabels.append(int(stimulusData.stimulusId == targetStimulus) if targetStimulus != UNDEFINED_STIMULUS else UNDEFINED_STIMULUS)
@@ -38,11 +34,22 @@ def read_raw_csr(input_fname, outputTimestamps=False):
 
     visitor = Visitor()
     RecordReader.Unpack(input_fname, visitor)
-    visitor.eegData = np.hstack(visitor.eegData)
-    visitor.eegTimestamps = np.ravel(visitor.eegTimestamps)
-    visitor.stimuliTimestamps = np.ravel(visitor.stimuliTimestamps)
-    visitor.stimuliLabels = np.ravel(visitor.stimuliLabels)
-    visitor.stimuliIds = np.ravel(visitor.stimuliIds)
+    eegData = None
+    eegTimestamps = None
+    stimuliTimestamps = None
+    stimuliLabels = None
+    stimuliIds = None
+
+    if visitor.eegData:
+        eegData = np.hstack(visitor.eegData)
+    if visitor.eegTimestamps:
+        eegTimestamps = np.hstack(visitor.eegTimestamps)
+    if visitor.stimuliTimestamps:
+        stimuliTimestamps = np.hstack(visitor.stimuliTimestamps)
+    if visitor.stimuliLabels:
+        stimuliLabels = np.hstack(visitor.stimuliLabels)
+    if visitor.stimuliIds:
+        stimuliIds = np.hstack(visitor.stimuliIds)
 
     metadata = RecordReader.UnpackMetadata(input_fname)
     deviceInfo = metadata["deviceInfo"]
@@ -62,21 +69,21 @@ def read_raw_csr(input_fname, outputTimestamps=False):
 
     events = []
 
-    if visitor.stimuliTimestamps is not None:
-        for idx, stimulusTimestamp in enumerate(visitor.stimuliTimestamps):
-            label = visitor.stimuliLabels[idx]
+    if stimuliTimestamps is not None:
+        for idx, stimulusTimestamp in enumerate(stimuliTimestamps):
+            label = stimuliLabels[idx]
 
             eid = label + 2 # remap into event ids by shifting
 
-            sampleIdx = find_nearest_idx(visitor.eegTimestamps, stimulusTimestamp)
+            sampleIdx = find_nearest_idx(eegTimestamps, stimulusTimestamp)
             events.append([sampleIdx, 0, eid])
 
     info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types='eeg')
 
-    returnVals = mne.io.RawArray(data=visitor.eegData, info=info), np.array(events), event_id
+    returnVals = mne.io.RawArray(data=eegData, info=info), np.array(events), event_id
 
     if outputTimestamps:
-        returnVals = *returnVals, visitor.eegTimestamps
+        returnVals = *returnVals, eegTimestamps
         return returnVals
 
     return returnVals
