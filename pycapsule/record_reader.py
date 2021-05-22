@@ -29,6 +29,10 @@ def getStimuliFromBinary(dataBytes):
     return [P300StimulusData(i[0], i[1], i[2]) for i in stimuliData]
 
 class RecordReaderVisitor:
+    def OnBegin(self):
+        pass
+    def OnEnd(self):
+        pass
     def OnRawEEG(self, eegData:np.ndarray, eegTimestamps:np.array):
         pass
     def OnRawResistance(self, resData:np.ndarray):
@@ -37,6 +41,43 @@ class RecordReaderVisitor:
         pass
     def OnInterfaceData(self, interfaceData):
         pass
+
+UNDEFINED_STIMULUS = -1
+TARGET_STIMULUS = 1
+NONTARGET_STIMULUS = 0
+
+class BasicReaderVisitor(RecordReaderVisitor):
+    def __init__(self) -> None:
+        super().__init__()
+
+        self.eegData = []
+        self.eegTimestamps = []
+        self.stimuliTimestamps = []
+        self.stimuliLabels = []
+        self.stimuliIds = []
+
+    def OnBegin(self):
+        pass
+        
+    # Convert to numpy arrays
+    def OnEnd(self):
+        self.eegData            = np.hstack(self.eegData)           if self.eegData             else None
+        self.eegTimestamps      = np.hstack(self.eegTimestamps)     if self.eegTimestamps       else None
+        self.stimuliTimestamps  = np.hstack(self.stimuliTimestamps) if self.stimuliTimestamps   else None
+        self.stimuliLabels      = np.hstack(self.stimuliLabels)     if self.stimuliLabels       else None
+        self.stimuliIds         = np.hstack(self.stimuliIds)        if self.stimuliIds          else None
+
+    def OnRawEEG(self, eegData:np.ndarray, eegTimestamps:np.array):
+        self.eegData.append(eegData)
+        self.eegTimestamps.append(eegTimestamps)
+        
+    def OnP300ProcessingUnit(self, p300unit:P300ProcessingUnit):
+        targetStimulus = p300unit.targetStimulus
+
+        for stimulusData in p300unit.stimuliData:
+            self.stimuliTimestamps.append(stimulusData.timestamp)
+            self.stimuliLabels.append(int(stimulusData.stimulusId == targetStimulus) if targetStimulus != UNDEFINED_STIMULUS else UNDEFINED_STIMULUS)
+            self.stimuliIds.append(stimulusData.stimulusId)
 
 class RecordReader:
     def __init__(self, filepath):
@@ -109,11 +150,13 @@ class RecordReader:
             if not RecordReader.__ReadMagic(file):
                 raise Exception("Failed to read record, format signature not found.")
 
+            visitor.OnBegin()
+
             while True:
                 inBytes = file.read(16)
 
                 if not inBytes: # EOF
-                    return
+                    break
 
                 if len(inBytes) != 16:
                     raise Exception("Data is corrupted, unable to read packet header!")
@@ -158,3 +201,5 @@ class RecordReader:
                     visitor.OnInterfaceData(file.read(packetSize))
                 else:
                     file.read(packetSize) # skip unknown packets
+
+            visitor.OnEnd()
