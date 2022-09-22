@@ -6,7 +6,7 @@ def find_nearest_idx(array, value):
     idx = np.searchsorted(array, value)
     return idx
 
-def read_raw_csr(input_fname, outputTimestamps=False):
+def read_raw_csr(input_fname, outputTimestamps=False, rawEventCodes=False):
     import mne
 
     visitor = BasicReaderVisitor()
@@ -46,6 +46,8 @@ def read_raw_csr(input_fname, outputTimestamps=False):
 
     if outputTimestamps:
         returnVals = *returnVals, visitor.eegTimestamps
-        return returnVals
+    
+    if rawEventCodes:
+        returnVals = *returnVals, visitor.rawStimuliCodes
 
     return returnVals

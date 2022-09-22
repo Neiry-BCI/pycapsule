@@ -72,6 +72,8 @@ class BasicReaderVisitor(RecordReaderVisitor):
         self.eegTimestamps = []
         self.stimuliTimestamps = []
         self.stimuliLabels = []
+        self.rawStimuliCodes = []
+
         self.stimuliIds = []
 
     def OnBegin(self):
@@ -91,11 +93,11 @@ class BasicReaderVisitor(RecordReaderVisitor):
         
     def OnP300ProcessingUnit(self, p300unit:P300ProcessingUnit):
         targetStimulus = p300unit.targetStimulus
-
         for stimulusData in p300unit.stimuliData:
             self.stimuliTimestamps.append(stimulusData.timestamp)  # type: ignore
             self.stimuliLabels.append(int(stimulusData.stimulusId == targetStimulus) if targetStimulus != UNDEFINED_STIMULUS else UNDEFINED_STIMULUS)  # type: ignore
             self.stimuliIds.append(stimulusData.stimulusId)  # type: ignore
+            self.rawStimuliCodes.append(stimulusData.stimulusId)
 
 class RecordReader:
     def __init__(self, filepath):
