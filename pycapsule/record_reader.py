@@ -135,7 +135,7 @@ class RecordReader:
         
         ftype_version = eegFileType(data['eeg_file_version'], data["deviceInfo"]["numChannels"])
         data['sessionInfo']['startUTCUnixTimestamp'] /= ftype_version.utc_timestamp_divider
-        data['sessionInfo']['startUTCUnixTimestamp'] /= ftype_version.utc_timestamp_divider
+        data['sessionInfo']['endUTCUnixTimestamp'] /= ftype_version.utc_timestamp_divider
         return data
 
         
