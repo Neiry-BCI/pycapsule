@@ -17,12 +17,14 @@ class eegFileType():
             self.timestamp_resolution = 1
             self.RawEEG_dtype = "I"
             self.RawEEG_dataBytes = 4
+            self.utc_timestamp_divider = 1
             
         elif version == 1:
             self.unpackFormat = "=q{0}".format("f" * numChannels)
             self.timestamp_resolution = 1e-6
             self.RawEEG_dtype = "H"
             self.RawEEG_dataBytes = 2
+            self.utc_timestamp_divider = 1e3
 
 
 def getEEGfromBinary(dataBytes, numChannels, ftype_version):
@@ -130,6 +132,10 @@ class RecordReader:
                 data = msgpack.unpackb(file.read())
                 if 'eeg_file_version' not in list(data.keys()):
                     data['eeg_file_version'] = 0  
+        
+        ftype_version = eegFileType(data['eeg_file_version'], data["deviceInfo"]["numChannels"])
+        data['sessionInfo']['startUTCUnixTimestamp'] /= ftype_version.utc_timestamp_divider
+        data['sessionInfo']['startUTCUnixTimestamp'] /= ftype_version.utc_timestamp_divider
         return data
 
         
