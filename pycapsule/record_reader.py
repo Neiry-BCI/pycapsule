@@ -127,7 +127,7 @@ class RecordReader:
                 data = json.loads(file.read())
                 if 'eeg_file_version' not in list(data.keys()):
                     data['eeg_file_version'] = 1
-        except UnicodeDecodeError:
+        except (UnicodeDecodeError, json.decoder.JSONDecodeError):
             with open(datFilepath,'rb') as file:
                 data = msgpack.unpackb(file.read())
                 if 'eeg_file_version' not in list(data.keys()):
