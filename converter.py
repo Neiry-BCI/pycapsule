@@ -14,7 +14,7 @@ import os
 from pycapsule.mne.io import read_raw_csr
 import pycapsule
 
-__version__ = 1.0
+__version__ = 1.2
 
 def _stamp_to_dt(utc_stamp):
     """Convert timestamp to datetime object in Windows-friendly way."""
@@ -142,12 +142,11 @@ def write_mne_edf(mne_raw, fname, picks=None, tmin=0, tmax=None,
     return True
 
 
-if __name__ == '__main__':
-
+def main():
     warnings.filterwarnings("ignore")
     parser = argparse.ArgumentParser(description='Enter .rec file path.')
-    parser.add_argument('-f', type=str, action='store', default=None, dest='filename')
-    parser.add_argument('-r', action='store_true', default=False, dest='raw_codes')
+    parser.add_argument('-f', type=str, action='store', default=None, dest='filename', help='path to .rec file')
+    parser.add_argument('-r', action='store_true', default=False, dest='raw_codes', help='wheter to output target/nontarget or raw stimuli ID (defaults to target/nontarget)')
     args = parser.parse_args()
     if args.filename:
         filename = args.filename.strip('\"')
@@ -158,7 +157,7 @@ if __name__ == '__main__':
     filename = Path(filename)
     filename.resolve()
     if not os.path.isfile(filename):
-        print(f"No file at {filename}")
+        print(f"No .rec file at {filename}")
         sys.exit()
     md = pycapsule.record_reader.RecordReader.UnpackMetadata(filename)
     raw, events, event_id, ts, ec = read_raw_csr(filename, outputTimestamps=True, rawEventCodes=True)
@@ -178,3 +177,8 @@ if __name__ == '__main__':
     write_mne_edf(raw, str(filename.parent/f'{filename.stem}.bdf'), overwrite=True)
 
     print ('...all done!')
+
+
+
+if __name__ == '__main__':
+    main()
