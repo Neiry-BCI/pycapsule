@@ -1,0 +1,5 @@
+mne==1.2.2
+msgpack==1.0.4
+numpy==1.23.5
+pyEDFlib==0.1.30
+regex==2022.10.31
