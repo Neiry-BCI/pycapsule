@@ -7,6 +7,21 @@ def find_nearest_idx(array, value):
     return idx
 
 def read_raw_csr(input_fname, outputTimestamps=False, rawEventCodes=False):
+    """Reads .rec file into MNE data type
+
+    Args:
+        input_fname (str): path to .rec file
+        outputTimestamps (bool, optional): whether to ouptut EEG timestamps 
+            along with data. Defaults to False.
+        rawEventCodes (bool, optional): wheter to otput raw event codes for 
+        every stimuli instead of target/nontarget description. Defaults to False.
+
+    Returns:
+        tulpe(mne.io.RawArray, np.ndarray[n_events,3], dict, *np.ndarray[n_times], 
+            *np.ndarray[n_events)]): MNE Raw object with EEG, events in MNE format 
+            (if present in data), event id dict, (optional): array of timestamps
+            for EEG data, (optional): array of raw event codes for every event
+    """
     import mne
 
     visitor = BasicReaderVisitor()
