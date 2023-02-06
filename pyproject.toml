@@ -1,18 +1,25 @@
 [tool.poetry]
 name = "pycapsule"
-version = "0.0.8"
+version = "0.0.11"
 description = "Various tools for Capsule BCI system"
 authors = [
-    "Yaroslav Shmelev <ysh@impulse-machine.com>"
+    "Yaroslav Shmelev <ysh@impulse-machine.com>",
+    "Rafael Grigoryan <grk@eegdude.ru>"
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
-msgpack = "^1.0.0"
-numpy= "^1.18.5"
+python = "^3.8"
+mne = "1.2.2"
+msgpack = "1.0.4"
+numpy = "1.23.5"
+pyEDFlib = "0.1.30"
+regex = "2022.10.31"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
+
+[tool.poetry.scripts]
+pycap2bdf = "pycapsule.converter:main"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
